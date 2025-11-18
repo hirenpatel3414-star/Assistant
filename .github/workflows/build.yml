@@ -1,0 +1,43 @@
+name: Build Android APK (reliable)
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Ensure gradle available
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y gradle unzip wget
+
+      - name: Make gradlew executable if present
+        run: |
+          if [ -f "./gradlew" ]; then chmod +x ./gradlew; fi
+
+      - name: Build (try ./gradlew, fallback to gradle)
+        run: |
+          set -e
+          if [ -f "./gradlew" ]; then
+            ./gradlew assembleDebug --no-daemon
+          else
+            gradle assembleDebug
+          fi
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: apk
+          path: app/build/outputs/apk/**/*.apk
